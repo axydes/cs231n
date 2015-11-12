@@ -83,6 +83,7 @@ class KNearestNeighbor:
     num_test = X.shape[0]
     num_train = self.X_train.shape[0]
     dists = np.zeros((num_test, num_train))
+    print X.shape
     print num_test, num_train
     for i in xrange(num_test):
       #######################################################################
@@ -91,7 +92,11 @@ class KNearestNeighbor:
       #######################################################################
       if i % int(num_test/50.0) == 0:
         print "On test point {}".format(i)
-      dists_i = np.sum(np.square(self.X_train - X[i,:]), axis=1)
+      tiled = np.tile(X[i], num_train)
+      # diffs = self.X_train.reshape((num_train,-1)) - tiled.reshape((num_train,-1))
+      diffs = tiled.reshape((num_train,-1)) - self.X_train.reshape((num_train,-1)) 
+      sqrd = np.square(diffs)
+      dists_i = np.sum(sqrd, axis=1)
       dists[i,:] = dists_i
       #######################################################################
       #                         END OF YOUR CODE                            #
