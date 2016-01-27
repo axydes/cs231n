@@ -135,7 +135,7 @@ def two_layer_net(X, model, y=None, reg=0.0):
   outDelta = (scores - labels).T
   outGrad = np.dot(outDelta,h1)
   grads['W2'] = outGrad.T + reg * W2
-  grads['b2'] = np.mean(outDelta)
+  grads['b2'] = np.mean(outDelta,axis=1)
 
   ins = X
   gprime = np.zeros(h1.shape)
@@ -143,7 +143,7 @@ def two_layer_net(X, model, y=None, reg=0.0):
   hDelta = np.dot(outDelta.T,W2.T)
   hGrad = np.dot((gprime * hDelta).T,ins)
   grads['W1'] = hGrad.T + reg * W1
-  grads['b1'] = np.mean(hDelta)
+  grads['b1'] = np.mean(hDelta,axis=0)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
