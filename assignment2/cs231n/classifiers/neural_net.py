@@ -29,6 +29,20 @@ def init_two_layer_model(input_size, hidden_size, output_size):
   model['b2'] = np.zeros(output_size)
   return model
 
+def softmax(x):
+  return 1.0/1.0 + np.exp(-x)
+
+def softmax_cross(scores,labels):
+  scores -= np.max(scores, axis=0)
+  num = np.exp(scores)
+  denom = num.sum(axis=0)
+  err = np.mean(-scores[labels,:] + np.log(denom))
+  return err
+
+def relu(x):
+  z=np.zeros(x.shape)
+  return np.maximum(z,x)
+
 def two_layer_net(X, model, y=None, reg=0.0):
   """
   Compute the loss and gradients for a two layer fully connected neural network.
@@ -80,7 +94,8 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # Store the result in the scores variable, which should be an array of      #
   # shape (N, C).                                                             #
   #############################################################################
-  pass
+  h1 = relu(np.dot(X,W1) + b1)
+  scores = np.dot(h1,W2) + b2
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
@@ -98,7 +113,9 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # classifier loss. So that your results match ours, multiply the            #
   # regularization loss by 0.5                                                #
   #############################################################################
-  pass
+  loss = softmax_cross(scores,y)
+  loss += 0.5 * reg * np.linalg.norm(W1)
+  loss += 0.5 * reg * np.linalg.norm(W2)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
