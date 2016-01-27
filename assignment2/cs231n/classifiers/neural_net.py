@@ -86,6 +86,7 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # unpack variables from the model dictionary
   W1,b1,W2,b2 = model['W1'], model['b1'], model['W2'], model['b2']
   N, D = X.shape
+  C = b2.shape[0]
 
   # compute the forward pass
   scores = None
@@ -120,6 +121,10 @@ def two_layer_net(X, model, y=None, reg=0.0):
   #                              END OF YOUR CODE                             #
   #############################################################################
 
+  lbl_idx = np.arange(N)
+  labels = np.zeros((N,C))
+  labels[lbl_idx,y[lbl_idx]] = 1
+
   # compute the gradients
   grads = {}
   #############################################################################
@@ -127,7 +132,18 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # and biases. Store the results in the grads dictionary. For example,       #
   # grads['W1'] should store the gradient on W1, and be a matrix of same size #
   #############################################################################
-  pass
+  outDelta = (scores - labels).T
+  outGrad = np.dot(outDelta,h1)
+  grads['W2'] = outGrad.T + reg * W2
+  grads['b2'] = np.mean(outDelta)
+
+  ins = X
+  gprime = np.zeros(h1.shape)
+  gprime[h1 > 0] = 1
+  hDelta = np.dot(outDelta.T,W2.T)
+  hGrad = np.dot((gprime * hDelta).T,ins)
+  grads['W1'] = hGrad.T + reg * W1
+  grads['b1'] = np.mean(hDelta)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
