@@ -33,10 +33,11 @@ def softmax(x):
   return 1.0/1.0 + np.exp(-x)
 
 def softmax_cross(scores,labels):
+  lbl_idx = np.arange(labels.shape[0])
   scores -= np.max(scores, axis=0)
   num = np.exp(scores)
-  denom = num.sum(axis=0)
-  err = np.mean(-scores[labels,:] + np.log(denom))
+  denom = np.sum(num,axis=1)
+  err = np.mean(-scores[lbl_idx,labels[lbl_idx]] + np.log(denom))
   return err
 
 def relu(x):
@@ -105,6 +106,10 @@ def two_layer_net(X, model, y=None, reg=0.0):
   if y is None:
     return scores
 
+  lbl_idx = np.arange(N)
+  labels = np.zeros((N,C))
+  labels[lbl_idx,y[lbl_idx]] = 1
+
   # compute the loss
   loss = None
   #############################################################################
@@ -115,15 +120,11 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # regularization loss by 0.5                                                #
   #############################################################################
   loss = softmax_cross(scores,y)
-  loss += 0.5 * reg * np.linalg.norm(W1)
-  loss += 0.5 * reg * np.linalg.norm(W2)
+  loss += 0.5 * reg * (np.linalg.norm(W1) + np.linalg.norm(W2))
+  print loss
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
-
-  lbl_idx = np.arange(N)
-  labels = np.zeros((N,C))
-  labels[lbl_idx,y[lbl_idx]] = 1
 
   # compute the gradients
   grads = {}
