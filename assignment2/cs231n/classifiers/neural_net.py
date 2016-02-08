@@ -129,12 +129,12 @@ def two_layer_net(X, model, y=None, reg=0.0):
   dscores /= N
 
   dW2 = np.dot(h1.T,dscores) + reg * W2
-  db2 = np.sum(dscores,axis=0,keepdims=True)
+  db2 = np.sum(dscores,axis=0)
 
   dh1 = np.dot(dscores, W2.T)
   dh1[h1 <= 0] = 0
   dW1 = np.dot(X.T, dh1) + reg * W1
-  db1 = np.sum(dh1,axis=0,keepdims=True)
+  db1 = np.sum(dh1,axis=0)
 
   grads['W2'] = dW2
   grads['b2'] = db2
