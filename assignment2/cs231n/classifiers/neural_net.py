@@ -29,20 +29,8 @@ def init_two_layer_model(input_size, hidden_size, output_size):
   model['b2'] = np.zeros(output_size)
   return model
 
-def softmax(x):
-  return 1.0/1.0 + np.exp(-x)
-
-def softmax_cross(scores,labels):
-  lbl_idx = np.arange(labels.shape[0])
-  scores -= np.max(scores, axis=0)
-  num = np.exp(scores)
-  denom = np.sum(num,axis=1)
-  err = np.mean(-scores[lbl_idx,labels[lbl_idx]] + np.log(denom))
-  return err
-
 def relu(x):
-  z=np.zeros(x.shape)
-  return np.maximum(z,x)
+  return np.maximum(0,x)
 
 def two_layer_net(X, model, y=None, reg=0.0):
   """
@@ -119,9 +107,12 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # classifier loss. So that your results match ours, multiply the            #
   # regularization loss by 0.5                                                #
   #############################################################################
-  loss = softmax_cross(scores,y)
-  loss += 0.5 * reg * (np.linalg.norm(W1) + np.linalg.norm(W2))
-  print loss
+  exp_scores = np.exp(scores)
+  probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+  correct_log_probs = -np.log(probs[range(N),y])
+  loss = np.sum(correct_log_probs)/N
+
+  loss += 0.5 * reg * np.sum(W1*W1) +  0.5 * reg * np.sum(W2*W2)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
@@ -133,18 +124,22 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # and biases. Store the results in the grads dictionary. For example,       #
   # grads['W1'] should store the gradient on W1, and be a matrix of same size #
   #############################################################################
-  outDelta = (scores - labels).T
-  outGrad = np.dot(outDelta,h1)
-  grads['W2'] = outGrad.T + reg * W2
-  grads['b2'] = np.mean(outDelta,axis=1)
+  dscores = probs
+  dscores[lbl_idx,y] -= 1
+  dscores /= N
 
-  ins = X
-  gprime = np.zeros(h1.shape)
-  gprime[h1 > 0] = 1
-  hDelta = np.dot(outDelta.T,W2.T)
-  hGrad = np.dot((gprime * hDelta).T,ins)
-  grads['W1'] = hGrad.T + reg * W1
-  grads['b1'] = np.mean(hDelta,axis=0)
+  dW2 = np.dot(h1.T,dscores) + reg * W2
+  db2 = np.sum(dscores,axis=0,keepdims=True)
+
+  dh1 = np.dot(dscores, W2.T)
+  dh1[h1 <= 0] = 0
+  dW1 = np.dot(X.T, dh1) + reg * W1
+  db1 = np.sum(dh1,axis=0,keepdims=True)
+
+  grads['W2'] = dW2
+  grads['b2'] = db2
+  grads['W1'] = dW1
+  grads['b1'] = db1
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
