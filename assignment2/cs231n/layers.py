@@ -1,12 +1,5 @@
 import numpy as np
 from scipy import ndimage
-try:
-  from cs231n.im2col_cython import col2im_cython, im2col_cython
-except ImportError:
-  print 'run the following from the cs231n directory and try again:'
-  print 'python setup.py build_ext --inplace'
-  print 'You may also need to restart your iPython kernel'
-
 from cs231n.im2col import *
 
 def affine_forward(x, w, b):
@@ -161,7 +154,7 @@ def conv_forward_naive(x, w, b, conv_param):
 
   out = np.zeros((N, F, H_prime, W_prime), dtype=x.dtype)
 
-  X_col = im2col_cython(x, HH, WW, pad, stride)
+  X_col = im2col_indices(x, HH, WW, pad, stride)
   W_row = w.reshape(F,-1)
   dt = np.dot(W_row, X_col) + b.reshape(-1,1)
   dt = np.reshape(dt, (F, H_prime, W_prime, N))
@@ -171,7 +164,7 @@ def conv_forward_naive(x, w, b, conv_param):
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  cache = (x, w, b, conv_param, X_col)
+  cache = (x, X_col, w, b, conv_param)
   return out, cache
 
 
@@ -192,7 +185,7 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  x, w, b, conv_param, X_col = cache
+  x, X_col, w, b, conv_param = cache
   stride = conv_param['stride']
   pad = conv_param['pad']
   N, C, H, W = x.shape
@@ -201,7 +194,7 @@ def conv_backward_naive(dout, cache):
   dout_new = dout.transpose(1,2,3,0).reshape(F,-1)
 
   dX_col = np.dot(w.reshape(F,-1).T, dout_new)
-  dx = col2im_cython(dX_col, N, C, H, W, HH, WW, pad, stride)
+  dx = col2im_indices(dX_col, (N, C, H, W), HH, WW, pad, stride)
   dw = np.dot(dout_new, X_col.T).reshape(w.shape)
   db = np.sum(dout, axis=(0,2,3))
   
@@ -230,11 +223,26 @@ def max_pool_forward_naive(x, pool_param):
   #############################################################################
   # TODO: Implement the max pooling forward pass                              #
   #############################################################################
-  pass
+  ph, pw, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+  N, C, H, W = x.shape
+
+  H2 = (H - ph) / stride + 1
+  W2 = (W - pw) / stride + 1
+
+  out = np.zeros((N, C, H2, W2))
+
+  x_res = x.reshape(N*C, 1, H, W)
+  X_col = im2col_indices(x_res, ph, pw, 0, stride)
+  idxs = np.argmax(X_col, axis=0)
+  X_col_max = X_col[idxs, np.arange(X_col.shape[1])]
+
+  dt = np.reshape(X_col_max, (H2, W2, N, C))
+  out = dt.transpose(2, 3, 0, 1)
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  cache = (x, pool_param)
+  cache = (x, X_col, idxs, pool_param)
   return out, cache
 
 
@@ -253,7 +261,15 @@ def max_pool_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the max pooling backward pass                             #
   #############################################################################
-  pass
+  x, X_col, idxs, pool_param = cache
+  ph, pw, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+  N, C, H, W = x.shape
+
+  dout_flt = dout.transpose(2, 3, 0, 1).flatten()
+  dX_col = np.zeros_like(X_col)
+  dX_col[idxs, np.arange(dX_col.shape[1])] = dout_flt
+  dx = col2im_indices(dX_col, (N*C, 1, H, W), ph, pw, 0, stride)
+  dx = dx.reshape(x.shape)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
