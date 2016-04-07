@@ -171,7 +171,7 @@ def conv_forward_naive(x, w, b, conv_param):
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  cache = (x, w, b, conv_param)
+  cache = (x, w, b, conv_param, X_col)
   return out, cache
 
 
@@ -192,7 +192,19 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  pass
+  x, w, b, conv_param, X_col = cache
+  stride = conv_param['stride']
+  pad = conv_param['pad']
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+
+  dout_new = dout.transpose(1,2,3,0).reshape(F,-1)
+
+  dX_col = np.dot(w.reshape(F,-1).T, dout_new)
+  dx = col2im_cython(dX_col, N, C, H, W, HH, WW, pad, stride)
+  dw = np.dot(dout_new, X_col.T).reshape(w.shape)
+  db = np.sum(dout, axis=(0,2,3))
+  
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
