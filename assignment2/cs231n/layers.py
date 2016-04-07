@@ -1,4 +1,13 @@
 import numpy as np
+from scipy import ndimage
+try:
+  from cs231n.im2col_cython import col2im_cython, im2col_cython
+except ImportError:
+  print 'run the following from the cs231n directory and try again:'
+  print 'python setup.py build_ext --inplace'
+  print 'You may also need to restart your iPython kernel'
+
+from cs231n.im2col import *
 
 def affine_forward(x, w, b):
   """
@@ -114,14 +123,13 @@ def relu_backward(dout, cache):
   #############################################################################
   return dx
 
-
 def conv_forward_naive(x, w, b, conv_param):
   """
   A naive implementation of the forward pass for a convolutional layer.
 
   The input consists of N data points, each with C channels, height H and width
   W. We convolve each input with F different filters, where each filter spans
-  all C channels and has height HH and width HH.
+  all C channels and has height HH and width WW.
 
   Input:
   - x: Input data of shape (N, C, H, W)
@@ -143,7 +151,23 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
-  pass
+  stride = conv_param['stride']
+  pad = conv_param['pad']
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+
+  H_prime = 1 + (H + 2 * pad - HH) / stride
+  W_prime = 1 + (W + 2 * pad - WW) / stride
+
+  out = np.zeros((N, F, H_prime, W_prime), dtype=x.dtype)
+
+  X_col = im2col_cython(x, HH, WW, pad, stride)
+  W_row = w.reshape(F,-1)
+  dt = np.dot(W_row, X_col) + b.reshape(-1,1)
+  dt = np.reshape(dt, (F, H_prime, W_prime, N))
+  
+  out = dt.transpose(3, 0, 1, 2)
+    
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
